@@ -131,6 +131,21 @@ class Coordinator:
         port is 0 then picks an unused port. Returns the port that the server
         is listening on.
         """
+        
+        #Creates a TCP socket using IPv4
+        server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        #Ensure the that the address can be reused when the server is restarted
+        server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+        if port == 0:
+            server_socket.bind(("0.0.0.0", 0))
+        else:
+            server_socket.bind(("0.0.0.0", port))
+            server_socket.listen(7)
+
+        actual_port = server_socket.getsockname()[1]
+
+        return actual_port
 
         # TODO: implement this method following the docstring specification.
         # Use IPv4 network and TCP transport.
@@ -145,6 +160,20 @@ class Coordinator:
         aggregated result and shuts down the server. This method blocks until
         there's no more work to do.
         """
+        while not self.work_done:
+            #Accept a new connection
+            connection, client_address =  self.server_socket.accept()
+            print(f"Connection from{client_address}")
+            #Handle the request in a separate to allow multiple clients
+            thread = threading.Thread(target=self.process_request, args=(connection,))
+            thread.start()
+
+            print("All work done. Aggregated results:")
+            for result in self.results:
+                print(result)
+                #Shut down the server
+                self.server_socket.close()
+                print("Server shut down")
 
         # TODO: implement this method following the docstring specification.
         # Hint: you may find it convenient to use the socket.makefile('rw')
